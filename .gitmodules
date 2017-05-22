@@ -1,0 +1,3 @@
+[submodule "contrib/ovxlib"]
+	path = contrib/ovxlib
+	url = https://github.com/thezha/ovxlib.git
