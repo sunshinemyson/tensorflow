@@ -24,9 +24,6 @@ limitations under the License.
 
 namespace tensorflow {
 
-constexpr const char* const INPUT_OP_NAME = "INPUT";
-constexpr const char* const OUTPUT_OP_NAME = "OUTPUT";
-
 const bool DBG_DUMP_VERIFICATION_STRING = false;
 const bool SHOW_DBG_IN_SOC = false;
 const bool DBG_USE_DUMMY_INPUT = false;
@@ -63,10 +60,14 @@ bool OvxControlWrapper::Init(const RemoteFusedGraphExecuteInfo& info) {
 
 bool OvxControlWrapper::Finalize() { return soc_interface_Finalize(); }
 bool OvxControlWrapper::SetupGraph() {
-  // Copy graph transfer info to modify to adapt hexnn library
+  // Copy graph transfer info to modify to adapt ovx nn library
   GraphTransferInfo& graph_transfer_info =
       graph_transferer_.GetMutableGraphTransferInfo();
+  // Setup node
+  // Setup tensor
+  // Setup graph inputs & outputs
 
+#if 0
   // Overwrite op type of input nodes for ovx
   for (const GraphTransferInfo::GraphInputNodeInfo& graph_input :
        graph_transfer_info.graph_input_node_info()) {
@@ -79,7 +80,7 @@ bool OvxControlWrapper::SetupGraph() {
   }
 
   // Generate a new output node which is connected to graph output node
-  // TODO(satok): Support multiple output nodes
+  // TODO: Support multiple output nodes
   CHECK_EQ(graph_transfer_info.graph_output_node_info_size(), 1);
   for (const GraphTransferInfo::GraphOutputNodeInfo& graph_output :
        graph_transfer_info.graph_output_node_info()) {
@@ -110,6 +111,7 @@ bool OvxControlWrapper::SetupGraph() {
     node_input.set_node_id(node_info->node_id());
     node_input.set_output_port(0);
   }
+#endif
 
   if (DBG_DUMP_VERIFICATION_STRING) {
     GraphTransferer gt;
@@ -117,6 +119,7 @@ bool OvxControlWrapper::SetupGraph() {
     gt.DumpVerificationStringOfNodeTransferParams();
   }
 
+#if 0
   int inputs_count = 0;
   int outputs_count = 0;
   for (const GraphTransferInfo::NodeInputInfo& input_params :
@@ -131,8 +134,10 @@ bool OvxControlWrapper::SetupGraph() {
   // Allocate memory for node inputs and node outputs
   soc_interface_AllocateNodeInputAndNodeOutputArray(inputs_count,
                                                     outputs_count);
+#endif
 
   // Construct node input parameters
+#if 0
   std::unordered_map<int, std::tuple<void*, int>> inputs_map;
   for (const GraphTransferInfo::NodeInputInfo& input_params :
        graph_transfer_info.node_input_info()) {
@@ -166,80 +171,66 @@ bool OvxControlWrapper::SetupGraph() {
     CHECK(outputs_map.count(node_id) == 0);
     outputs_map.emplace(node_id, std::make_tuple(outputs_ptr, count));
   }
+#endif
 
   // Instantiate graph
   soc_interface_InstantiateGraph();
 
   // Initialize graph
-  // 1. Setup const nodes
+  // 1. Setup const nodes as tensor.
   for (const GraphTransferInfo::ConstNodeInfo& params :
        graph_transfer_info.const_node_info()) {
-    const int node_id = params.node_id();
-    // TODO(satok): Stop assuming shape size is 4.
-    CHECK(params.shape_size() == 4);
-    const int64 shape_0 = params.shape(0);
-    const int64 shape_1 = params.shape(1);
-    const int64 shape_2 = params.shape(2);
-    const int64 shape_3 = params.shape(3);
-    const int data_size = params.data().length();
-    CHECK(dummy_const_data_.count(node_id) == 0);
-    auto data = dummy_const_data_.emplace(
-        std::piecewise_construct, std::make_tuple(node_id), std::make_tuple());
-    CHECK(data.second);
-    const int additional_bytes_for_alignment = 16;
-    data.first->second.resize(data_size + additional_bytes_for_alignment - 1);
-    const uintptr_t data_ptr_int =
-        reinterpret_cast<uintptr_t>(data.first->second.data());
-    const int shift_count = (16 - data_ptr_int % 16) % 16;
-    uint8* data_ptr = data.first->second.data() + shift_count;
-    std::memcpy(data_ptr, params.data().data(), data_size);
-    soc_interface_AppendConstNode(params.name().c_str(),
-                                  node_id + NODE_ID_OFFSET, shape_0, shape_1,
-                                  shape_2, shape_3, data_ptr, data_size);
+    const int max_dim_num = 4;
+    uint32 shape[max_dim_num] = { 0 };
+
+    CHECK(params.shape_size() <= max_dim_num);
+    for(int i = 0; i < params.shape_size(); i++) {
+        shape[i] = params.shape[i];
+    }
+
+    soc_interface_AppendConstTensor(
+            params.name().c_str(), params.node_id(),
+            shape, params.shape_size(),
+            params.data().data(), params.data().length());
   }
 
+  // Setup tensors
+  // Graph input tensor
+  // Graph output tensor
+  // For each node output.
+  // soc_interface_AppendTensor(tensor_name);
+
   // 2. Setup op nodes
+  void * ovxnode;
   for (const GraphTransferInfo::NodeInfo& params :
        graph_transfer_info.node_info()) {
     const int node_id = params.node_id();
     const int op_id = params.soc_op_id();
-    CHECK(inputs_map.count(node_id) == 1);
-    CHECK(outputs_map.count(node_id) <= 1);
-    // Only output node doesn't have output
-    const bool has_output = outputs_map.count(node_id) == 1;
-    const auto& input_ptr_and_count = inputs_map.at(node_id);
-    const void* input_ptr = std::get<0>(input_ptr_and_count);
-    const int input_count = std::get<1>(input_ptr_and_count);
-    void* output_ptr = nullptr;
-    int output_count = 0;
-    if (has_output) {
-      const auto& output_ptr_and_count = outputs_map.at(node_id);
-      output_ptr = std::get<0>(output_ptr_and_count);
-      output_count = std::get<1>(output_ptr_and_count);
-      // CHECK(output_count > 0);
-    }
-    int padding_id = -1;
-    if (params.padding_id() == 0) {
-      padding_id = 0;
-    } else if (params.padding_id() == Padding::SAME) {
-      padding_id = 1;
-    } else if (params.padding_id() == Padding::VALID) {
-      padding_id = 2;
-    } else {
-      CHECK(false);
-    }
-    soc_interface_AppendNode(params.name().c_str(), node_id + NODE_ID_OFFSET,
-                             op_id, padding_id, input_ptr, input_count,
-                             output_ptr, output_count);
+
+    /* TODO: Parse param */
+    ovxnode = soc_interface_AppendNode(
+                             params.name().c_str(), node_id,
+                             op_id, input_ptr, input_count,
+                             output_ptr, output_count
+                             );
+    // Find all param inputs.
+    // For each param noodes
+    // soc_interface_SetNodeParam( ovxnode, param );
   }
+
+  // Connent nodes
+  // Set node input tensor.
+  // For each node input
+  // soc_interface_SetNodeInput(tensor_name, port)
+  // Set node output tensor.
+  // For each node output
+  // soc_interface_SetNodeOutput(tensor_name, port)
 
   LOG(INFO) << "Setup graph completed";
 
-  // 3. construct graph
+  // construct graph
   return soc_interface_ConstructGraph();
 
-  // Keep following comment to use dummy graph construction
-  // return soc_interface_setupDummyGraph(3 /* inception version */);
 }
 
 bool OvxControlWrapper::ExecuteGraph() {
@@ -255,20 +246,13 @@ bool OvxControlWrapper::FillInputNode(const string& node_name,
                                           const ConstByteArray bytes) {
   uint64 byte_size;
   const int x = 1;
-  const int y = 299;
-  const int z = 299;
-  const int d = 3;
-  if (DBG_USE_DUMMY_INPUT) {
-    const int array_length = x * y * z * d;
-    byte_size = array_length * sizeof(float);
-    dummy_input_float_.resize(array_length);
-    std::memset(dummy_input_float_.data(), 0, byte_size);
-  } else {
-    CHECK(std::get<2>(bytes) == DT_FLOAT);
-    byte_size = std::get<1>(bytes);
-    dummy_input_float_.resize(byte_size / sizeof(float));
-    std::memcpy(dummy_input_float_.data(), std::get<0>(bytes), byte_size);
-  }
+  const int y = 28;
+  const int z = 28;
+  const int d = 1;
+  CHECK(std::get<2>(bytes) == DT_FLOAT);
+  byte_size = std::get<1>(bytes);
+  dummy_input_float_.resize(byte_size / sizeof(float));
+  std::memcpy(dummy_input_float_.data(), std::get<0>(bytes), byte_size);
   return soc_interface_FillInputNodeFloat(
       x, y, z, d, reinterpret_cast<uint8*>(dummy_input_float_.data()),
       byte_size);
@@ -292,7 +276,7 @@ bool OvxControlWrapper::ReadOutputNode(
   ReadOutputNode(node_name, &outputs);
   Tensor* output = tensor_allocator(output_shape);
   CHECK(output->TotalBytes() >= std::get<1>(outputs[0]));
-  // TODO(satok): Avoid specifying float
+  // TODO: Avoid specifying float
   std::memcpy(output->flat<float>().data(), std::get<0>(outputs[0]),
               std::get<1>(outputs[0]));
 }

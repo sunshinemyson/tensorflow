@@ -36,15 +36,7 @@ $(MAKE_D_DSPCV_INCDIR)/dspCV
 # ovx controller library
 ovx_controller_lib_C_SRCS += \
 src_impl/ovx_controller \
-src_impl/graph_functions_wrapper \
 src_soc_interface/soc_interface
-
-## dummy data
-#ovx_controller_lib_C_SRCS += \
-#src_dummy_data/inception_v1_graph_init \
-#src_dummy_data/inception_v3_dummy_float_data \
-#src_dummy_data/inception_v3_dummy_int_data \
-#src_dummy_data/inception_v3_graph_init
 
 # ovx interface
 ovx_controller_lib_C_SRCS += \

@@ -28,7 +28,6 @@ namespace tensorflow {
 /*
   OvxControlWrapper is implementing interfaces in IRemoteFusedGraphExecutor.
   This class calls APIs on ovx via ovx control binary.
-  TODO(satok): Add more documents about ovx control binary.
  */
 class OvxControlWrapper final : public IRemoteFusedGraphExecutor {
  public:
@@ -56,10 +55,10 @@ class OvxControlWrapper final : public IRemoteFusedGraphExecutor {
   const RemoteFusedGraphExecuteInfo* execute_info_{};
   GraphTransferer graph_transferer_{};
   // Dummy float array for input node.
-  // TODO(satok): Use actual data passed by FillInputNode and remove
+  // TODO: Use actual data passed by FillInputNode and remove
   std::vector<float> dummy_input_float_{};
   // Dummy byte array for cosnt node.
-  // TODO(satok): Remove
+  // TODO: Remove
   std::unordered_map<int, std::vector<uint8>> dummy_const_data_{};
 
   TF_DISALLOW_COPY_AND_ASSIGN(OvxControlWrapper);

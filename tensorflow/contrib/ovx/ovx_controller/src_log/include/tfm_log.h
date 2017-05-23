@@ -20,40 +20,40 @@ limitations under the License.
 #include <stdbool.h>
 #include <stdio.h>
 
-#define TFM_LOG_LEVEL_VERBOSE -2
-#define TFM_LOG_LEVEL_DEBUG -1
-#define TFM_LOG_LEVEL_INFO 0
-#define TFM_LOG_LEVEL_WARNING 1
-#define TFM_LOG_LEVEL_ERROR 2
-#define TFM_LOG_LEVEL_FATAL 3
+#define OVX_LOG_LEVEL_VERBOSE -2
+#define OVX_LOG_LEVEL_DEBUG -1
+#define OVX_LOG_LEVEL_INFO 0
+#define OVX_LOG_LEVEL_WARNING 1
+#define OVX_LOG_LEVEL_ERROR 2
+#define OVX_LOG_LEVEL_FATAL 3
 
-static int s_log_level = TFM_LOG_LEVEL_INFO;
+static int s_log_level = OVX_LOG_LEVEL_INFO;
 
 static inline bool IsLogOn(int log_level) { return log_level >= s_log_level; }
 
 static inline void SetLogLevel(int log_level) { s_log_level = log_level; }
 
-#define TFMLOGV(fmt, ...)                       \
+#define OVXLOGV(fmt, ...)                       \
   do {                                          \
-    if (!IsLogOn(TFM_LOG_LEVEL_VERBOSE)) break; \
+    if (!IsLogOn(OVX_LOG_LEVEL_VERBOSE)) break; \
     printf(fmt "\n", ##__VA_ARGS__);            \
   } while (0)
 
-#define TFMLOGD(fmt, ...)                     \
+#define OVXLOGD(fmt, ...)                     \
   do {                                        \
-    if (!IsLogOn(TFM_LOG_LEVEL_DEBUG)) break; \
+    if (!IsLogOn(OVX_LOG_LEVEL_DEBUG)) break; \
     printf(fmt "\n", ##__VA_ARGS__);          \
   } while (0)
 
-#define TFMLOGI(fmt, ...)                    \
+#define OVXLOGI(fmt, ...)                    \
   do {                                       \
-    if (!IsLogOn(TFM_LOG_LEVEL_INFO)) break; \
+    if (!IsLogOn(OVX_LOG_LEVEL_INFO)) break; \
     printf(fmt "\n", ##__VA_ARGS__);         \
   } while (0)
 
-#define TFMLOGE(fmt, ...)                     \
+#define OVXLOGE(fmt, ...)                     \
   do {                                        \
-    if (!IsLogOn(TFM_LOG_LEVEL_ERROR)) break; \
+    if (!IsLogOn(OVX_LOG_LEVEL_ERROR)) break; \
     printf(fmt "\n", ##__VA_ARGS__);          \
   } while (0)
 
@@ -61,7 +61,7 @@ static inline void PrintLogOvx(const char* fmt, va_list ap) {
   char buffer[200];
   const int count = snprintf(buffer, 200, fmt, ap);
   buffer[count] = 0;
-  TFMLOGI("%s", buffer);
+  OVXLOGI("%s", buffer);
 }
 
 static inline void LogDOvx(const char* fmt, ...) {
