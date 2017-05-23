@@ -96,6 +96,13 @@ def if_not_windows(a):
       "//conditions:default": a,
   })
 
+def if_has_ovx(hvx, ovx):
+  return select({
+      "//tensorflow:platform_hexagon": hvx,
+      "//tensorflow:platform_ovx": ovx,
+      "//conditions:default": [],
+  })
+
 def if_x86(a):
   return select({
       "//tensorflow:linux_x86_64": a,

@@ -15,6 +15,7 @@ message GraphTransferInfo {
   enum Destination {
     NOP = 0;
     HEXAGON = 1;
+    OVX = 2;
   }
   message NodeInput {
     int32 node_id = 1;

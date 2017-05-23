@@ -97,7 +97,8 @@ cc_library(
         "//tensorflow/core:tensorflow",
     ] + if_not_windows([
         "//tensorflow/core/kernels:quantized_ops",
-        "//tensorflow/core/kernels/hexagon:hexagon_rewriter_transform",
+        #FIXME:    "//tensorflow/core/kernels/hexagon:hexagon_rewriter_transform",
+        "//tensorflow/core/kernels/ovx:ovx_rewriter_transform",
     ]),
     alwayslink = 1,
 )
