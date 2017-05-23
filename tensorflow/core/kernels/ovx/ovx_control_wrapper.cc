@@ -185,7 +185,7 @@ bool OvxControlWrapper::SetupGraph() {
 
     CHECK(params.shape_size() <= max_dim_num);
     for(int i = 0; i < params.shape_size(); i++) {
-        shape[i] = params.shape[i];
+        shape[i] = params.shape(i);
     }
 
     soc_interface_AppendConstTensor(

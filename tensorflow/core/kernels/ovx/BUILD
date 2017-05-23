@@ -10,6 +10,7 @@ licenses(["notice"])  # Apache 2.0
 
 load(
     "//tensorflow:tensorflow.bzl",
+    "tf_copts",
     "tf_cc_test",
     "tf_kernel_library",
 )
@@ -88,6 +89,7 @@ tf_kernel_library(
         "ovx_ops_definitions.h",
         "i_graph_transfer_ops_definitions.h",
     ],
+    copts = tf_copts() + ["-DUSE_OVX_LIBS"],
     deps = [
         "//tensorflow/cc:cc_ops",
         "//tensorflow/cc:remote_fused_graph_ops",
@@ -98,6 +100,7 @@ tf_kernel_library(
         "//tensorflow/core:lib",
         "//tensorflow/core/kernels:remote_fused_graph_execute_utils",
         "//third_party/eigen3",
+        "//contrib/ovxlib:ovxlib",
     ],
 )
 
