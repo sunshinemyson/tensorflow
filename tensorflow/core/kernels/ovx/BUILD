@@ -101,6 +101,7 @@ tf_kernel_library(
         "//tensorflow/core/kernels:remote_fused_graph_execute_utils",
         "//third_party/eigen3",
         "//contrib/ovxlib:ovxlib",
+        "//tensorflow/contrib/ovx:ovx_controller",
     ],
 )
 

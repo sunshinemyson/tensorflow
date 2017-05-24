@@ -13,13 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "soc_interface.h"
-
 #include <inttypes.h>
 
+#include "soc_interface.h"
 #include "ovx_controller.h"
-#include "ovx_nn.h"
-#include "node_data_float.h"
 #include "ovx_log.h"
 
 int soc_interface_GetWrapperVersion() {
@@ -34,20 +31,19 @@ int soc_interface_GetSocControllerVersion() {
 
 bool soc_interface_Init() {
   OVXLOGD("Init");
-  ovx_controller_InitOvx();
-  return true;
+  return ovx_controller_InitOvx();
 }
 
 bool soc_interface_Finalize() {
   OVXLOGD("Finalize");
-  ovx_controller_DeInitOvx();
-  return true;
+  return ovx_controller_DeInitOvx();
 }
 
 bool soc_interface_ExecuteGraph() {
   bool success;
-  OVXLOGD("ExecuteGraph");
   const uint32_t graph_id = ovx_controller_GetTargetGraphId();
+
+  OVXLOGD("ExecuteGraph");
   if (OVX_CONTROLLER_GRAPH_ID_NA == graph_id) {
     OVXLOGE("Graph id has not been set yet.");
     return false;
@@ -62,42 +58,47 @@ bool soc_interface_TeardownGraph() {
 }
 
 bool soc_interface_FillInputNode(
-    int x, int y, int z, int d, const uint8_t* const buf,
-    uint64_t buf_size) {
-  OVXLOGD("FillInputNodeFloat");
-  return true;
+    const char* const name, int node_id,
+    const uint32_t * const shape, uint32_t dim_num,
+    const uint8_t* const buf, uint64_t buf_size) {
+  OVXLOGD("FillInputNode %s", name);
+  bool ret = ovx_controller_FillInputNode(
+          name, node_id,
+          shape, dim_num, buf, buf_size);
+  return ret;
 }
 
-bool soc_interface_ReadOutputNode(
-    const char* const node_name, uint8_t** buf, uint64_t *buf_size) {
-  OVXLOGD("ReadOutputNodeFloat");
-  return true;
+uint64_t soc_interface_ReadOutputNode(
+    const char* const node_name, uint8_t** buf, uint64_t *bytes) {
+  OVXLOGD("ReadOutputNode %s", node_name);
+  return ovx_controller_GetOutputNodeData(node_name, buf, bytes);
 }
 
 // Append const node to the graph
 bool soc_interface_AppendConstTensor(
-    const char* const name, int node_id, int batch, int height, int width, int depth,
-    const uint8_t* const data, int data_length) {
-  const uint32_t graph_id = ovx_controller_GetTargetGraphId();
-  const int retval = ovx_controller_AppendConstTensor(
-      name, graph_id, node_id, batch, height, width, depth, data, data_length);
-  if (retval != 0) {
-    OVXLOGE("Failed to append const tensor %d", node_id);
-    return false;
+    const char* const name, int node_id,
+    const uint32_t * const shape, uint32_t dim_num,
+    uint8_t* data, int data_length) {
+  bool ret = ovx_controller_AppendConstTensor(
+                        name, node_id,
+                        shape, dim_num, data, data_length);
+  if (true != ret) {
+    OVXLOGE("Failed to append const tensor %s", name);
   }
-  return true;
+  return ret;
 }
 
 // Append node to the graph
-int soc_interface_AppendNode(
-    const char* const name, int node_id, int ops_id, int padding_id, const void* const inputs,
-    int inputs_count, const void* const outputs, int outputs_count) {
+uint32_t soc_interface_AppendNode(
+    const char* const name, int node_id, int op_id,
+    const void* const inputs, int inputs_count,
+    const void* const outputs, int outputs_count) {
   const uint32_t graph_id = ovx_controller_GetTargetGraphId();
-  const int ovxnode_id = ovx_controller_AppendNode(
-      name, graph_id, node_id, ops_id, padding_id,
-      (ovx_nn_input*) inputs, inputs_count,
-      (ovx_nn_output*) outputs, outputs_count);
-  return (int)ovxnode_id;
+  const uint32_t ovxnode_id = ovx_controller_AppendNode(
+                          name, graph_id, node_id, op_id,
+                          inputs, inputs_count,
+                          outputs, outputs_count);
+  return ovxnode_id;
 }
 
 
@@ -121,3 +122,4 @@ void soc_interface_SetLogLevel(int log_level) {
 void soc_interface_SetDebugFlag(uint64_t flag) {
   OVXLOGI("Set debug flag 0x%" PRIx64, flag);
 }
+

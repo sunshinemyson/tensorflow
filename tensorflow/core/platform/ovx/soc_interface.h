@@ -44,23 +44,22 @@ bool soc_interface_ExecuteGraph();
 // Teardown graph setup
 bool soc_interface_TeardownGraph();
 // Send input data to SOC
-bool soc_interface_FillInputNode(int x, int y, int z, int d,
-                                      const uint8_t* const buf,
-                                      uint64_t buf_size);
+bool soc_interface_FillInputNode(const char* const name, int node_id,
+                                   const uint32_t * const shape, uint32_t dim_num,
+                                   const uint8_t* const buf, uint64_t buf_size);
 // Load output data from SOC
-bool soc_interface_ReadOutputNode(const char* const node_name,
-                                       uint8_t** buf, uint64_t* buf_size);
+uint64_t soc_interface_ReadOutputNode(const char* const node_name,
+                                       uint8_t** buf, uint64_t* bytes);
 
 // Append const node to the graph
 bool soc_interface_AppendConstTensor(const char* const name, int node_id,
-                                   int batch, int height, int width, int depth,
-                                   const uint8_t* const data, int data_length);
+                                    const uint32_t * const shape, uint32_t dim_num,
+                                    uint8_t* data, int data_length);
 
 // Append node to the graph
-bool soc_interface_AppendNode(const char* const name, int node_id, int op_id,
-                              int padding_id, const void* const inputs,
-                              int inputs_count, const void* const outputs,
-                              int outputs_count);
+uint32_t soc_interface_AppendNode(const char* const name, int node_id, int op_id,
+                                    const void* const inputs, int inputs_count,
+                                    const void* const outputs, int outputs_count);
 
 // Instantiate graph
 bool soc_interface_InstantiateGraph();

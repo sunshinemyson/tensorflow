@@ -16,70 +16,65 @@ limitations under the License.
 #ifndef GEMM_WRAPPER_H
 #define GEMM_WRAPPER_H
 
+#include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "ovx_nn.h"
+//#include "ovx_nn.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif  // __cplusplus
 
+#define OVX_CONTROLLER_GRAPH_ID_NA  ((uint32_t)-1)
+
 // General functions
-void ovx_controller_PrintGraph(uint32_t nn_id);
+void ovx_controller_PrintGraph(uint32_t graph_id);
 
 int ovx_controller_GetWrapperVersion();
 
 int ovx_controller_GetOvxBinaryVersion();
 
-int ovx_controller_DeInitOvx();
+bool ovx_controller_DeInitOvx();
 
-int ovx_controller_InitOvx();
+bool ovx_controller_InitOvx();
 
 uint32_t ovx_controller_GetTargetGraphId();
 
 void ovx_controller_SetTargetGraphId(uint32_t graph_id);
 
-// Graph data transfer functions
-int ovx_controller_GetInputNodeData(
-        const char* node_name, uint8_t** buf, uint8_t* bytes);
+bool ovx_controller_FillInputNode(const char* const name, int node_id,
+                                    const uint32_t * const shape, uint32_t dim_num,
+                                    const uint8_t* const buf, uint64_t buf_size);
 
-float* ovx_controller_GetOutputNodeData(
-    const char* node_name, uint8_t** buf, uint8_t* bytes);
+uint64_t ovx_controller_GetOutputNodeData(
+    const char* node_name, uint8_t** buf, uint64_t* bytes);
 
 // Graph functions
 uint32_t ovx_controller_InstantiateGraph();
 
-void ovx_controller_InitGraph(int version, uint32_t nn_id);
+void ovx_controller_InitGraph(int version, const uint32_t graph_id);
 
-bool ovx_controller_ConstructGraph(uint32_t nn_id);
+bool ovx_controller_ConstructGraph(const uint32_t graph_id);
 
-uint32_t ovx_controller_SetupGraph(int version);
+bool ovx_controller_ExecuteGraph(const uint32_t graph_id);
 
-bool ovx_controller_ExecuteGraph(
-    const uint32_t nn_id, const uint32_t batches, const uint32_t height,
-    const uint32_t width, const uint32_t depth, uint8_t* int_data,
-    const uint32_t int_data_size, uint32_t* out_batches, uint32_t* out_height,
-    uint32_t* out_width, uint32_t* out_depth, uint8_t* out_vals,
-    const uint32_t output_val_byte_size, uint32_t* out_data_byte_size);
+void ovx_controller_DumpNodeName(const uint32_t graph_id);
 
-void ovx_controller_DumpNodeName(uint32_t nn_id);
-
-int ovx_controller_AppendNode(const char* const name, int graph_id,
-                                  int node_id, int op_id, int padding_id,
-                                  const ovx_nn_input* const inputs,
+uint32_t ovx_controller_AppendNode(const char* const name, int graph_id,
+                                  int node_id, int op_id,
+                                  const uint8_t* const inputs,
                                   int inputs_count,
-                                  const ovx_nn_output* const outputs,
+                                  const uint8_t* const outputs,
                                   int outputs_count);
 
-int ovx_controller_AppendConstTensor(const char* const name, int graph_id,
-                                       int node_id, int batch, int height,
-                                       int width, int depth,
-                                       const uint8_t* const data,
-                                       int data_length);
+bool ovx_controller_AppendConstTensor(const char* const name, int node_id,
+                                       const uint32_t * const shape, uint32_t dim_num,
+                                       uint8_t* data, int data_length);
 
 #ifdef __cplusplus
 }
 #endif  // __cplusplus
 
 #endif  // GEMM_WRAPPER_H
+

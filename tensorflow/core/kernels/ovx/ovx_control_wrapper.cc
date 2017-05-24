@@ -18,7 +18,8 @@ limitations under the License.
 #include "tensorflow/core/kernels/ovx/ovx_ops_definitions.h"
 
 #ifdef USE_OVX_LIBS
-#include "tensorflow/core/platform/ovx/soc_interface.h"
+//#include "tensorflow/core/platform/ovx/soc_interface.h"
+#include "soc_interface.h"
 #include "tensorflow/core/platform/profile_utils/cpu_utils.h"
 #endif
 
@@ -26,9 +27,6 @@ namespace tensorflow {
 
 const bool DBG_DUMP_VERIFICATION_STRING = false;
 const bool SHOW_DBG_IN_SOC = false;
-const bool DBG_USE_DUMMY_INPUT = false;
-const bool DBG_USE_SAMPLE_INPUT = false;
-const int64 FLAG_ENABLE_PANDA_BINARY_INPUT = 0x01;
 const bool DBG_DUMP_INPUT_TENSOR_AS_FLOAT_DATA = false;
 
 /* static */ GraphTransferInfo::NodeInfo* OvxControlWrapper::FindNodeInfo(
@@ -49,9 +47,6 @@ int OvxControlWrapper::GetVersion() {
 
 bool OvxControlWrapper::Init(const RemoteFusedGraphExecuteInfo& info) {
   soc_interface_SetLogLevel(SHOW_DBG_IN_SOC ? -1 /* debug */ : 0 /* info */);
-  if (DBG_USE_SAMPLE_INPUT) {
-    soc_interface_SetDebugFlag(FLAG_ENABLE_PANDA_BINARY_INPUT);
-  }
   graph_transferer_.SetSerializedGraphTransferInfo(
       info.serialized_executor_parameters());
   execute_info_ = &info;
@@ -174,6 +169,7 @@ bool OvxControlWrapper::SetupGraph() {
 #endif
 
   // Instantiate graph
+#if 0
   soc_interface_InstantiateGraph();
 
   // Initialize graph
@@ -193,6 +189,7 @@ bool OvxControlWrapper::SetupGraph() {
             shape, params.shape_size(),
             params.data().data(), params.data().length());
   }
+#endif
 
   // Setup tensors
   // Graph input tensor
@@ -201,6 +198,7 @@ bool OvxControlWrapper::SetupGraph() {
   // soc_interface_AppendTensor(tensor_name);
 
   // 2. Setup op nodes
+#if 0
   void * ovxnode;
   for (const GraphTransferInfo::NodeInfo& params :
        graph_transfer_info.node_info()) {
@@ -217,6 +215,7 @@ bool OvxControlWrapper::SetupGraph() {
     // For each param noodes
     // soc_interface_SetNodeParam( ovxnode, param );
   }
+#endif
 
   // Connent nodes
   // Set node input tensor.
@@ -238,24 +237,20 @@ bool OvxControlWrapper::ExecuteGraph() {
 }
 
 bool OvxControlWrapper::TeardownGraph() {
-  soc_interface_ReleaseNodeInputAndNodeOutputArray();
   return soc_interface_TeardownGraph();
 }
 
 bool OvxControlWrapper::FillInputNode(const string& node_name,
                                           const ConstByteArray bytes) {
   uint64 byte_size;
-  const int x = 1;
-  const int y = 28;
-  const int z = 28;
-  const int d = 1;
   CHECK(std::get<2>(bytes) == DT_FLOAT);
   byte_size = std::get<1>(bytes);
   dummy_input_float_.resize(byte_size / sizeof(float));
   std::memcpy(dummy_input_float_.data(), std::get<0>(bytes), byte_size);
-  return soc_interface_FillInputNodeFloat(
-      x, y, z, d, reinterpret_cast<uint8*>(dummy_input_float_.data()),
-      byte_size);
+  //return soc_interface_FillInputNode(
+  //    x, y, z, d, reinterpret_cast<uint8*>(dummy_input_float_.data()),
+  //    byte_size);
+  return false;
 }
 
 bool OvxControlWrapper::ReadOutputNode(
@@ -279,14 +274,15 @@ bool OvxControlWrapper::ReadOutputNode(
   // TODO: Avoid specifying float
   std::memcpy(output->flat<float>().data(), std::get<0>(outputs[0]),
               std::get<1>(outputs[0]));
+  return true;
 }
 
 bool OvxControlWrapper::ReadOutputNode(
     const string& node_name, std::vector<ByteArray>* const outputs) {
   CHECK(outputs != nullptr);
   ByteArray output;
-  soc_interface_ReadOutputNodeFloat(node_name.c_str(), &std::get<0>(output),
-                                    &std::get<1>(output));
+  //soc_interface_ReadOutputNode(node_name.c_str(), &std::get<0>(output),
+  //                                  &std::get<1>(output));
   // TODO: Accept all results
   std::get<2>(output) = DT_FLOAT;
   outputs->emplace_back(output);
