@@ -40,7 +40,7 @@ static vsi_nn_context_t s_context = NULL;
 static vsi_nn_graph_t * s_graph = NULL;
 static vsi_nn_tensor_id_t * s_tensor_node = NULL;
 
-bool ovx_controller_ExecuteGraph(uint32_t graph_id) {
+bool ovx_controller_ExecuteGraph() {
   bool ret;
   OVXLOGI("Execute graph.");
 
@@ -83,7 +83,7 @@ bool ovx_controller_DeInitOvx() {
 }
 
 // Append const tensor to the graph
-bool ovx_controller_AppendConstTensor(
+uint32_t ovx_controller_AppendConstTensor(
         const char* const name, int node_id,
         const uint32_t * const shape, uint32_t dim_num,
         uint8_t* data, int data_type) {
@@ -103,7 +103,7 @@ bool ovx_controller_AppendConstTensor(
   } else {
     s_tensor_node[node_id] = tensor_id;
   }
-  return true;
+  return tensor_id;
 }
 
 static bool _read_attr(vsi_nn_node_t* node,
@@ -124,7 +124,7 @@ void ovx_controller_parse_attrs(uint32_t node_id,
 
 // Append node to the graph
 uint32_t ovx_controller_AppendNode(
-    const char* const name, int graph_id, int node_id, int op_id,
+    const char* const name, int node_id, int op_id,
     const uint8_t* const inputs, int inputs_count,
     const uint8_t* const outputs, int outputs_count) {
   vsi_nn_node_id_t ovxnode_id = 0;
@@ -139,15 +139,26 @@ uint32_t ovx_controller_AppendNode(
   return ovxnode_id;
 }
 
-bool ovx_controller_ConstructGraph(uint32_t graph_id) {
-  return true;
+bool ovx_controller_ConstructGraph() {
+  vx_status status;
+  status = vsi_nn_SetupGraph(s_graph, true);
+  if (VX_SUCCESS == status) {
+    status = vsi_nn_VerifyGraph(s_graph);
+  } else {
+    OVXLOGE("Setup graph fail.");
+  }
+  return (VX_SUCCESS == status);
 }
 
 uint32_t ovx_controller_InstantiateGraph(
+        uint32_t input_num, uint32_t output_num,
         uint32_t tensor_num, uint32_t node_num) {
   s_graph = vsi_nn_CreateGraph(s_context, tensor_num, node_num);
   if (NULL == s_graph) {
     OVXLOGE("Create graph(%d, %d) fail.", tensor_num, node_num);
+  } else {
+      vsi_nn_SetGraphInputs(s_graph, NULL, input_num);
+      vsi_nn_SetGraphOutputs(s_graph, NULL, output_num);
   }
   return 1;
 }

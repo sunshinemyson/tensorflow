@@ -41,14 +41,7 @@ bool soc_interface_Finalize() {
 
 bool soc_interface_ExecuteGraph() {
   bool success;
-  const uint32_t graph_id = ovx_controller_GetTargetGraphId();
-
-  OVXLOGD("ExecuteGraph");
-  if (OVX_CONTROLLER_GRAPH_ID_NA == graph_id) {
-    OVXLOGE("Graph id has not been set yet.");
-    return false;
-  }
-  success = ovx_controller_ExecuteGraph(graph_id);
+  success = ovx_controller_ExecuteGraph();
   return success;
 }
 
@@ -57,15 +50,14 @@ bool soc_interface_TeardownGraph() {
   return true;
 }
 
-bool soc_interface_FillInputNode(
-    const char* const name, int node_id,
-    const uint32_t * const shape, uint32_t dim_num,
-    const uint8_t* const buf, uint64_t buf_size) {
-  OVXLOGD("FillInputNode %s", name);
-  bool ret = ovx_controller_FillInputNode(
-          name, node_id,
-          shape, dim_num, buf, buf_size);
-  return ret;
+bool soc_interface_FillInputTensor(
+        uint32_t tensor_id,
+        const uint8_t* const buf, uint64_t buf_size) {
+  OVXLOGD("FillInputTensor %d", tensor_id);
+  //bool ret = ovx_controller_FillInputNode(
+  //        name, node_id,
+  //        shape, dim_num, buf, buf_size);
+  return true;
 }
 
 uint64_t soc_interface_ReadOutputNode(
@@ -75,35 +67,55 @@ uint64_t soc_interface_ReadOutputNode(
 }
 
 // Append const node to the graph
-bool soc_interface_AppendConstTensor(
-    const char* const name, int node_id,
-    const uint32_t * const shape, uint32_t dim_num,
-    uint8_t* data, int data_length) {
-  bool ret = ovx_controller_AppendConstTensor(
-                        name, node_id,
-                        shape, dim_num, data, data_length);
-  if (true != ret) {
+uint32_t soc_interface_AppendConstTensor(
+    const char* const name,
+    uint32_t node_id, int input_index,
+    uint32_t * shape, uint32_t dim_num,
+    const uint8_t* const data, int data_length,
+    int dtype) {
+  uint32_t id = (uint32_t)-1;
+  //bool ret = ovx_controller_AppendConstTensor(
+  //                      name, node_id,
+  //                      shape, dim_num, data, data_length);
+  if ((uint32_t)-1 == id) {
     OVXLOGE("Failed to append const tensor %s", name);
   }
-  return ret;
+  return id;
 }
 
 // Append node to the graph
 uint32_t soc_interface_AppendNode(
-    const char* const name, int node_id, int op_id,
-    const void* const inputs, int inputs_count,
-    const void* const outputs, int outputs_count) {
-  const uint32_t graph_id = ovx_controller_GetTargetGraphId();
-  const uint32_t ovxnode_id = ovx_controller_AppendNode(
-                          name, graph_id, node_id, op_id,
-                          inputs, inputs_count,
-                          outputs, outputs_count);
-  return ovxnode_id;
+    const char* const name, int op_id) {
+  //const uint32_t ovxnode_id = ovx_controller_AppendNode(
+  //        name, op_id);
+  //return ovxnode_id;
+  return 0;
 }
 
+void soc_interface_SetNodeInput(
+        uint32_t node_id, uint32_t tensor_id) {
+
+}
+
+uint32_t soc_interface_AppendTensor(
+        uint32_t node_id, uint32_t * shape, uint32_t dim_num,
+        const uint8_t* const data, int data_length,
+        int dtype) {
+return -1;
+}
+
+void soc_interface_SetGraphOutputTensor(uint32_t tensor_id) {
+
+}
+
+void soc_interface_SetGraphInputTensor(uint32_t tensor_id) {
+
+}
 
 // Instantiate graph
-bool soc_interface_InstantiateGraph() {
+bool soc_interface_InstantiateGraph(
+        const int input_num, const int output_num,
+        const int tensor_num, const int node_num) {
   const uint32_t nn_id = ovx_controller_InstantiateGraph();
   ovx_controller_SetTargetGraphId(nn_id);
   return true;
@@ -111,8 +123,7 @@ bool soc_interface_InstantiateGraph() {
 
 // Construct graph
 bool soc_interface_ConstructGraph() {
-  const uint32_t graph_id = ovx_controller_GetTargetGraphId();
-  return ovx_controller_ConstructGraph(graph_id);
+  return ovx_controller_ConstructGraph();
 }
 
 void soc_interface_SetLogLevel(int log_level) {

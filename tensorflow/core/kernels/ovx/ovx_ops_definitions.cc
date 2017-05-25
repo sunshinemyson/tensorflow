@@ -109,6 +109,12 @@ const std::unordered_map<string, SupportedOpType> OP_NAME_TO_SOC_OP_TYPE_MAP{
     {"Dequantize", SupportedOpType::DEQUANTIZE},
     {"Softmax", SupportedOpType::SOFTMAX_F},
     {"Placeholder", SupportedOpType::NOP},
+    {"Conv2D", SupportedOpType::CONV2D_F},
+    {"Add", SupportedOpType::BIASADD_F},
+    {"Relu", SupportedOpType::RELU_F},
+    {"MaxPool", SupportedOpType::MAXPOOL_F},
+    {"AvgPool", SupportedOpType::AVGPOOL_F},
+    {"MatMul", SupportedOpType::MATMUL_F},
 };
 
 /* static */ const IGraphTransferOpsDefinitions&

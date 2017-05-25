@@ -53,22 +53,22 @@ uint64_t ovx_controller_GetOutputNodeData(
 // Graph functions
 uint32_t ovx_controller_InstantiateGraph();
 
-void ovx_controller_InitGraph(int version, const uint32_t graph_id);
+void ovx_controller_InitGraph(int version);
 
-bool ovx_controller_ConstructGraph(const uint32_t graph_id);
+bool ovx_controller_ConstructGraph();
 
-bool ovx_controller_ExecuteGraph(const uint32_t graph_id);
+bool ovx_controller_ExecuteGraph();
 
 void ovx_controller_DumpNodeName(const uint32_t graph_id);
 
-uint32_t ovx_controller_AppendNode(const char* const name, int graph_id,
+uint32_t ovx_controller_AppendNode(const char* const name,
                                   int node_id, int op_id,
                                   const uint8_t* const inputs,
                                   int inputs_count,
                                   const uint8_t* const outputs,
                                   int outputs_count);
 
-bool ovx_controller_AppendConstTensor(const char* const name, int node_id,
+uint32_t ovx_controller_AppendConstTensor(const char* const name, int node_id,
                                        const uint32_t * const shape, uint32_t dim_num,
                                        uint8_t* data, int data_length);
 

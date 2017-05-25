@@ -44,25 +44,34 @@ bool soc_interface_ExecuteGraph();
 // Teardown graph setup
 bool soc_interface_TeardownGraph();
 // Send input data to SOC
-bool soc_interface_FillInputNode(const char* const name, int node_id,
-                                   const uint32_t * const shape, uint32_t dim_num,
+bool soc_interface_FillInputTensor(uint32_t tensor_id,
                                    const uint8_t* const buf, uint64_t buf_size);
 // Load output data from SOC
 uint64_t soc_interface_ReadOutputNode(const char* const node_name,
                                        uint8_t** buf, uint64_t* bytes);
 
 // Append const node to the graph
-bool soc_interface_AppendConstTensor(const char* const name, int node_id,
-                                    const uint32_t * const shape, uint32_t dim_num,
-                                    uint8_t* data, int data_length);
+uint32_t soc_interface_AppendConstTensor(const char* const name,
+                                   uint32_t node_id, int input_index,
+                                   uint32_t * shape, uint32_t dim_num,
+                                   const uint8_t* const data, int data_length,
+                                   int dtype);
+
+uint32_t soc_interface_AppendTensor(uint32_t node_id,
+                                   uint32_t * shape, uint32_t dim_num,
+                                   const uint8_t* const data, int data_length,
+                                   int dtype);
+
+void soc_interface_SetGraphInputTensor(uint32_t tensor_id);
+
+void soc_interface_SetGraphOutputTensor(uint32_t tensor_id);
 
 // Append node to the graph
-uint32_t soc_interface_AppendNode(const char* const name, int node_id, int op_id,
-                                    const void* const inputs, int inputs_count,
-                                    const void* const outputs, int outputs_count);
+uint32_t soc_interface_AppendNode(const char* const name, int op_id);
 
 // Instantiate graph
-bool soc_interface_InstantiateGraph();
+bool soc_interface_InstantiateGraph(const int input_num, const int output_num,
+        const int tensor_num, const int node_num);
 
 // Construct graph
 bool soc_interface_ConstructGraph();
@@ -72,6 +81,8 @@ void soc_interface_SetLogLevel(int log_level);
 
 // Set debug flag
 void soc_interface_SetDebugFlag(uint64_t flag);
+
+void soc_interface_SetNodeInput(uint32_t node_id, uint32_t tensor_id);
 
 #ifdef __cplusplus
 }
