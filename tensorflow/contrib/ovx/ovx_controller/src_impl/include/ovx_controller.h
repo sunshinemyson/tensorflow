@@ -43,15 +43,15 @@ uint32_t ovx_controller_GetTargetGraphId();
 
 void ovx_controller_SetTargetGraphId(uint32_t graph_id);
 
-bool ovx_controller_FillInputNode(const char* const name, int node_id,
-                                    const uint32_t * const shape, uint32_t dim_num,
-                                    const uint8_t* const buf, uint64_t buf_size);
+bool ovx_controller_FillInputTensor(uint32_t tensor_id,
+        const uint8_t* const buf, uint64_t buf_size);
 
-uint64_t ovx_controller_GetOutputNodeData(
-    const char* node_name, uint8_t** buf, uint64_t* bytes);
+uint64_t ovx_controller_GetOutputNodeData(const char* node_name,
+        uint8_t** buf, uint64_t* bytes);
 
 // Graph functions
-uint32_t ovx_controller_InstantiateGraph();
+uint32_t ovx_controller_InstantiateGraph(uint32_t input_num, uint32_t output_num,
+        uint32_t tensor_num, uint32_t node_num);
 
 void ovx_controller_InitGraph(int version);
 
@@ -61,16 +61,24 @@ bool ovx_controller_ExecuteGraph();
 
 void ovx_controller_DumpNodeName(const uint32_t graph_id);
 
-uint32_t ovx_controller_AppendNode(const char* const name,
-                                  int node_id, int op_id,
-                                  const uint8_t* const inputs,
-                                  int inputs_count,
-                                  const uint8_t* const outputs,
-                                  int outputs_count);
+uint32_t ovx_controller_AppendNode(const char* const name, int op_id);
 
-uint32_t ovx_controller_AppendConstTensor(const char* const name, int node_id,
-                                       const uint32_t * const shape, uint32_t dim_num,
-                                       uint8_t* data, int data_length);
+uint32_t ovx_controller_AppendConstTensor(const char* const name,
+                                       uint32_t node_id, int input_index,
+                                       uint32_t * shape, uint32_t dim_num,
+                                       const uint8_t* const data, uint64_t data_length,
+                                       int data_type);
+
+void ovx_controller_SetNodeInput(uint32_t node_id, uint32_t tensor_id, int port);
+
+void  ovx_controller_SetGraphOutputTensor(uint32_t tensor_id, int port);
+
+void  ovx_controller_SetGraphInputTensor(uint32_t tensor_id, int port);
+
+uint32_t ovx_controller_AppendTensor(uint32_t node_id, int port,
+        uint32_t * shape, uint32_t dim_num,
+        const uint8_t* const data, int data_length,
+        int dtype);
 
 #ifdef __cplusplus
 }
