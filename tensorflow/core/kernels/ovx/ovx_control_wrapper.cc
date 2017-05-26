@@ -29,17 +29,6 @@ const bool DBG_DUMP_VERIFICATION_STRING = true;
 const bool SHOW_DBG_IN_SOC = false;
 const bool DBG_DUMP_INPUT_TENSOR_AS_FLOAT_DATA = false;
 
-/* static */ GraphTransferInfo::NodeInfo* OvxControlWrapper::FindNodeInfo(
-    const string& name, GraphTransferInfo* graph_transfer_info) {
-  for (GraphTransferInfo::NodeInfo& node_info :
-       *graph_transfer_info->mutable_node_info()) {
-    if (node_info.name() == name) {
-      return &node_info;
-    }
-  }
-  return nullptr;
-}
-
 #ifdef USE_OVX_LIBS
 int OvxControlWrapper::GetVersion() {
   return soc_interface_GetSocControllerVersion();
@@ -49,6 +38,9 @@ bool OvxControlWrapper::Init(const RemoteFusedGraphExecuteInfo& info) {
   soc_interface_SetLogLevel(SHOW_DBG_IN_SOC ? -1 /* debug */ : 0 /* info */);
   graph_transferer_.SetSerializedGraphTransferInfo(
       info.serialized_executor_parameters());
+
+  graph_transferer_.GraphNodeMerge();
+
   execute_info_ = &info;
   return soc_interface_Init();
 }

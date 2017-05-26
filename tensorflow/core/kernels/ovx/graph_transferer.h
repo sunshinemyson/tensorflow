@@ -72,6 +72,8 @@ class GraphTransferer {
       const bool dry_run_for_unknown_shape,
       RemoteFusedGraphExecuteUtils::TensorShapeMap* tensor_shape_map);
 
+   bool GraphNodeMerge();
+
   // Sort params so that all input nodes appear before consumer nodes.
   // CAVEAT: This may be slow if the number of nodes are too large
   void SortParams(const std::vector<string>& output_node_names);
@@ -210,6 +212,33 @@ class GraphTransferer {
   void DumpNodeTransferParams() const;
 
   GraphTransferInfo graph_transfer_info_{};
+
+  static GraphTransferInfo::NodeInfo* FindNodeInfo(
+      const string& name, GraphTransferInfo* graph_transfer_info);
+  static void CopyNodeInfo(
+      GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti, std::vector<int> &except);
+  static void CopyNodeInputInfo(
+      GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti, std::vector<int> &except);
+  static void CopyNodeOutputInfo(
+      GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti, std::vector<int> &except);
+  static GraphTransferInfo::NodeInfo* FindNodeInfo(
+      const int node_id, GraphTransferInfo* graph_transfer_info);
+  static GraphTransferInfo::NodeInputInfo* FindNodeInputInfo(
+      const int32 node_id, GraphTransferInfo* graph_transfer_info);
+  static GraphTransferInfo::NodeOutputInfo* FindNodeOutputInfo(
+      const int32 node_id, GraphTransferInfo* graph_transfer_info);
+  static void MergeInputInfo(
+      const int32 node_id, GraphTransferInfo* graph_transfer_info, GraphTransferInfo::NodeInputInfo *targeInfo, const int32 excludeID);
+  static void MapOrigNodeId2NewNodeId(
+      GraphTransferInfo* graph_transfer_info, std::map<int, int>& id_map);
+  static void MergeConstNodeInfo(
+      GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti );
+  static int FindInputOP(
+      int nodeId, int opID, GraphTransferInfo* graph_transfer_info);
+  static void MergeGraphInputNodeInfo(
+          GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti );
+  static void MergeGraphOutputNodeInfo(
+          GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti );
 
   std::vector<const Node*> node_name_cache_list_{};
   std::unordered_map<string, int> node_name_to_id_cache_map_{};

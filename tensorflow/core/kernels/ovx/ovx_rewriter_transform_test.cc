@@ -32,7 +32,7 @@ namespace tensorflow {
 namespace graph_transforms {
 
 // Declared here so we don't have to put it in a public header.
-Status RewriteQuantizedStrippedModelForovx(
+Status RewriteQuantizedStrippedModelForOvx(
     const GraphDef& input_graph_def, const TransformFuncContext& context,
     GraphDef* output_graph_def);
 
@@ -69,7 +69,7 @@ TEST(ovxRewriteTransformTest, BasicRun) {
   context.params.insert(std::pair<string, std::vector<string>>(
       {"input_type0", {string("float")}}));
   TF_ASSERT_OK(
-      RewriteQuantizedStrippedModelForovx(graph_def, context, &result));
+      RewriteQuantizedStrippedModelForOvx(graph_def, context, &result));
 
   // Node in the input graph is fused to
   // 1 input placeholder node + 1 fused output node

@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow/core/kernels/ovx/graph_transferer.h"
+#include "tensorflow/core/kernels/ovx/ovx_ops_definitions.h"
 
 #include <algorithm>
 #include <cinttypes>
@@ -950,5 +951,402 @@ void GraphTransferer::DumpVerificationStringOfNodeTransferParams() const {
   LOG(INFO) << "Output params count = "
             << graph_transfer_info_.node_output_info_size();
 }
+
+/* static */ GraphTransferInfo::NodeInfo* GraphTransferer::FindNodeInfo(
+    const string& name, GraphTransferInfo* graph_transfer_info) {
+  for (GraphTransferInfo::NodeInfo& node_info :
+       *graph_transfer_info->mutable_node_info()) {
+    if (node_info.name() == name) {
+      return &node_info;
+    }
+  }
+  return nullptr;
+}
+
+/* static */ GraphTransferInfo::NodeInfo* GraphTransferer::FindNodeInfo(
+    const int node_id, GraphTransferInfo* graph_transfer_info) {
+  for (GraphTransferInfo::NodeInfo& node_info :
+       *graph_transfer_info->mutable_node_info()) {
+    if (node_info.node_id() == node_id) {
+      return &node_info;
+    }
+  }
+  return nullptr;
+}
+
+/* static */void GraphTransferer::CopyNodeInfo(
+    GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti, std::vector<int> &except) {
+  for (GraphTransferInfo::NodeInfo& node_info :
+       *src_gti->mutable_node_info()) {
+    int nid = node_info.node_id();
+    bool needCopy = true;
+    for(int exceptNID : except) {
+      if (nid == exceptNID) {
+        needCopy = false;
+        break;
+      }
+    }
+    if (needCopy){
+      GraphTransferInfo::NodeInfo& ni = *dst_gti->add_node_info();
+      ni = node_info;
+    }
+  }
+}
+
+/* static */void GraphTransferer::CopyNodeInputInfo(
+    GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti, std::vector<int> &except) {
+  for (GraphTransferInfo::NodeInputInfo& node_input_info :
+       *src_gti->mutable_node_input_info()) {
+    int nid = node_input_info.node_id();
+    bool needCopy = true;
+    for(int exceptNID : except) {
+      if (nid == exceptNID) {
+        needCopy = false;
+        break;
+      }
+    }
+    if (needCopy){
+      GraphTransferInfo::NodeInputInfo& nii = *dst_gti->add_node_input_info();
+      nii = node_input_info;
+    }
+  }
+}
+
+/* static */void GraphTransferer::CopyNodeOutputInfo(
+    GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti, std::vector<int> &except) {
+  for (GraphTransferInfo::NodeOutputInfo& node_output_info :
+       *src_gti->mutable_node_output_info()) {
+    int nid = node_output_info.node_id();
+    bool needCopy = true;
+    for(int exceptNID : except) {
+      if (nid == exceptNID) {
+        needCopy = false;
+        break;
+      }
+    }
+    if (needCopy){
+      GraphTransferInfo::NodeOutputInfo& noi = *dst_gti->add_node_output_info();
+      noi = node_output_info;
+    }
+  }
+}
+
+
+/* static */ GraphTransferInfo::NodeInputInfo* GraphTransferer::FindNodeInputInfo(
+    const int32 node_id, GraphTransferInfo* graph_transfer_info) {
+  for (GraphTransferInfo::NodeInputInfo& node_input_info :
+       *graph_transfer_info->mutable_node_input_info()) {
+    if (node_input_info.node_id() == node_id) {
+      return &node_input_info;
+    }
+  }
+  return nullptr;
+}
+/* static */ GraphTransferInfo::NodeOutputInfo* GraphTransferer::FindNodeOutputInfo(
+    const int32 node_id, GraphTransferInfo* graph_transfer_info) {
+  for (GraphTransferInfo::NodeOutputInfo& node_output_info :
+       *graph_transfer_info->mutable_node_output_info()) {
+    if (node_output_info.node_id() == node_id) {
+      return &node_output_info;
+    }
+  }
+  return nullptr;
+}
+
+/* static */ void GraphTransferer::MergeInputInfo(
+  const int32 node_id, GraphTransferInfo* graph_transfer_info, GraphTransferInfo::NodeInputInfo *targeInfo, const int32 excludeID) {
+  GraphTransferInfo::NodeInputInfo* sourceInfo = FindNodeInputInfo(node_id, graph_transfer_info);
+  for (const GraphTransferInfo::NodeInput& nodeInput :
+       *sourceInfo->mutable_node_input()) {
+    if (nodeInput.node_id() != excludeID) {
+      GraphTransferInfo::NodeInput& ni = *targeInfo->add_node_input();
+      ni = nodeInput;
+    }
+  }
+}
+/* static */ void GraphTransferer::MapOrigNodeId2NewNodeId(
+  GraphTransferInfo* graph_transfer_info, std::map<int, int>& id_map) {
+  for (GraphTransferInfo::NodeInputInfo& node_input_info :
+       *graph_transfer_info->mutable_node_input_info()) {
+      if (node_input_info.node_input_size() == 0) continue;
+      for (GraphTransferInfo::NodeInput& node_input :
+           *node_input_info.mutable_node_input()) {
+        std::map<int, int>::iterator iter;
+        for(iter = id_map.begin(); iter!=id_map.end(); iter++){
+          if (node_input.node_id() == iter->first){
+            const int32 new_id = iter->second;
+            node_input.set_node_id(new_id);
+            break;
+          }
+        }
+     }
+  }
+}
+
+/* static */ void GraphTransferer::MergeConstNodeInfo(
+  GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti ) {
+  for (const GraphTransferInfo::ConstNodeInfo& constNodeInfo :
+       *src_gti->mutable_const_node_info()) {
+    GraphTransferInfo::ConstNodeInfo& nci = *dst_gti->add_const_node_info();
+    nci = constNodeInfo;
+  }
+}
+
+/* static */ void GraphTransferer::MergeGraphInputNodeInfo(
+  GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti ) {
+  for (const GraphTransferInfo::GraphInputNodeInfo& graphInputNodeInfo :
+       *src_gti->mutable_graph_input_node_info()) {
+    GraphTransferInfo::GraphInputNodeInfo& gini = *dst_gti->add_graph_input_node_info();
+    gini = graphInputNodeInfo;
+  }
+}
+
+/* static */ void GraphTransferer::MergeGraphOutputNodeInfo(
+    GraphTransferInfo* src_gti, GraphTransferInfo* dst_gti ) {
+  for (const GraphTransferInfo::GraphOutputNodeInfo& graphOutputNodeInfo :
+       *src_gti->mutable_graph_output_node_info()) {
+    GraphTransferInfo::GraphOutputNodeInfo& gini = *dst_gti->add_graph_output_node_info();
+    gini = graphOutputNodeInfo;
+  }
+}
+
+/* static */ int GraphTransferer::FindInputOP(
+    int nodeId, int opID, GraphTransferInfo* graph_transfer_info) {
+  GraphTransferInfo::NodeInputInfo* node_input_info = FindNodeInputInfo(nodeId, graph_transfer_info);
+  for (const GraphTransferInfo::NodeInput& node_input :
+     *node_input_info->mutable_node_input()) {
+    GraphTransferInfo::NodeInfo* node_info = FindNodeInfo(node_input.node_id(), graph_transfer_info);
+    if (node_info != nullptr && node_info->soc_op_id() == opID) {
+        return node_info->node_id();
+    }
+  }
+  return -1;
+}
+
+bool GraphTransferer::GraphNodeMerge(){
+  GraphTransferInfo orig_graph_info = graph_transfer_info_;
+  GraphTransferInfo merge_graph_info{};
+  merge_graph_info.Clear();
+  std::vector<int> removeOpID;
+  std::map<int, int> mergedNodeIDMap;
+  LOG(INFO)<<"Orig Graph";
+  LOG(INFO)<<orig_graph_info.SerializeAsString();
+  int new_node_id = orig_graph_info.node_info_size() +
+                                 orig_graph_info.const_node_info_size();
+  // 2. Setup op nodes
+
+  for (const GraphTransferInfo::NodeInfo& params :
+       orig_graph_info.node_info()) {
+    const int node_id = params.node_id();
+    const int op_id = params.soc_op_id();
+    //Ruler Convolution Relu Pool
+    if (op_id == (int)SupportedOpType::AVGPOOL_F ||
+        op_id == (int)SupportedOpType::MAXPOOL_F) {
+      int relu_id = -1;
+      int bias_add_id = -1;
+      int conv2d_id = -1;
+      int pool_id = node_id;
+      relu_id = FindInputOP(node_id, (int)SupportedOpType::RELU_F, &orig_graph_info);
+      if (relu_id != -1) {
+        bias_add_id = FindInputOP(relu_id,(int)SupportedOpType::BIASADD_F, &orig_graph_info);
+        conv2d_id = FindInputOP(bias_add_id != -1 ? bias_add_id : relu_id,(int)SupportedOpType::CONV2D_F, &orig_graph_info);
+      }
+      //Found Merge OP
+      if (conv2d_id != -1) {
+        GraphTransferInfo::NodeInfo *conv2d_ninfo = FindNodeInfo(conv2d_id, &orig_graph_info);
+        GraphTransferInfo::NodeInfo *relu_ninfo = FindNodeInfo(relu_id, &orig_graph_info);
+        GraphTransferInfo::NodeInfo *pool_nifo = FindNodeInfo(pool_id, &orig_graph_info);
+        GraphTransferInfo::NodeInfo *bias_add_ninfo = FindNodeInfo(bias_add_id, &orig_graph_info);
+
+        //Step1, Create a new node.
+        new_node_id += 2 /* offset for ids */;
+        mergedNodeIDMap[pool_id] = new_node_id;
+        removeOpID.push_back(conv2d_id);
+        removeOpID.push_back(bias_add_id);
+        removeOpID.push_back(relu_id);
+        removeOpID.push_back(pool_id);
+
+        // Create a new output node
+        GraphTransferInfo::NodeInfo& conv_relu_pool_node_info =
+            *merge_graph_info.add_node_info();
+        conv_relu_pool_node_info.set_name(string("convReluPool")+std::to_string(new_node_id));
+        conv_relu_pool_node_info.set_node_id(new_node_id);
+        conv_relu_pool_node_info.set_type_name("ConvolutionReluePool");
+        conv_relu_pool_node_info.set_soc_op_id(
+            OvxOpsDefinitions::getInstance().GetOpIdFor("ConvolutionReluePool"));
+        conv_relu_pool_node_info.set_padding_id(conv2d_ninfo->padding_id()); //TODO: need set share same padding so far. need split padding to a single node.
+
+        //Step2, set node input count, output count
+        int input_count = conv2d_ninfo->input_count() + bias_add_ninfo->input_count() - 1 + relu_ninfo->input_count() - 1 + pool_nifo->input_count() - 1;
+        if (bias_add_ninfo != nullptr) input_count += bias_add_ninfo->input_count() -1;
+        int output_count = pool_nifo->output_count();
+        conv_relu_pool_node_info.set_input_count(input_count);
+        conv_relu_pool_node_info.set_output_count(output_count);
+
+        //Step3, create Node Input Info, copy input info to the new NodeInput Info, and remove
+        GraphTransferInfo::NodeInputInfo& conv_relu_pool_node_input_info =
+            *merge_graph_info.add_node_input_info();
+        conv_relu_pool_node_input_info.set_node_id(new_node_id);
+        MergeInputInfo(conv2d_id, &orig_graph_info, &conv_relu_pool_node_input_info, -1);
+        if(bias_add_id != -1){
+          MergeInputInfo(bias_add_id, &orig_graph_info, &conv_relu_pool_node_input_info, conv2d_id);
+          MergeInputInfo(relu_id, &orig_graph_info, &conv_relu_pool_node_input_info, bias_add_id);
+        } else {
+          MergeInputInfo(relu_id, &orig_graph_info, &conv_relu_pool_node_input_info, conv2d_id);
+        }
+        MergeInputInfo(pool_id, &orig_graph_info, &conv_relu_pool_node_input_info, relu_id);
+
+        //Step4, create Node Output Info, copy from POOL node, and reset new node id.
+        GraphTransferInfo::NodeOutputInfo& conv_relu_pool_node_output_info =
+            *merge_graph_info.add_node_output_info();
+        conv_relu_pool_node_output_info.CopyFrom(*FindNodeOutputInfo(pool_id, &orig_graph_info));
+        conv_relu_pool_node_output_info.set_node_id(new_node_id);
+      }
+    }
+  }
+  for (const GraphTransferInfo::NodeInfo& params :
+       orig_graph_info.node_info()) {
+    const int node_id = params.node_id();
+    const int op_id = params.soc_op_id();
+    //Ruler Convolution Relu or Full Collect Relu
+    if(op_id == (int)SupportedOpType::RELU_F) {
+      bool notProcessed = true;
+      for(int i=0; i < removeOpID.size(); i++){
+        if (node_id == removeOpID[i]){
+          notProcessed = false;
+          break;
+        }
+      }
+
+      if(notProcessed){
+        int relu_id = node_id;
+        int conv2d_id = -1;
+        int bias_add_id = -1;
+        int full_connect_id = -1;
+        bias_add_id = FindInputOP(relu_id,(int)SupportedOpType::BIASADD_F, &orig_graph_info);
+        conv2d_id = FindInputOP(bias_add_id != -1 ? bias_add_id : relu_id,(int)SupportedOpType::CONV2D_F, &orig_graph_info);
+        full_connect_id = FindInputOP(bias_add_id != -1 ? bias_add_id : relu_id,(int)SupportedOpType::MATMUL_F, &orig_graph_info);
+        //Ruler Convolution Relu
+        if (conv2d_id != -1){
+          GraphTransferInfo::NodeInfo *conv2d_ninfo = FindNodeInfo(conv2d_id, &orig_graph_info);
+          GraphTransferInfo::NodeInfo *relu_ninfo = FindNodeInfo(relu_id, &orig_graph_info);
+          GraphTransferInfo::NodeInfo *bias_add_ninfo = FindNodeInfo(bias_add_id, &orig_graph_info);
+
+          //Step1, Create a new node.
+          new_node_id += 2 /* offset for ids */;
+          mergedNodeIDMap[relu_id] = new_node_id;
+          removeOpID.push_back(conv2d_id);
+          removeOpID.push_back(bias_add_id);
+          removeOpID.push_back(relu_id);
+
+          // Create a new output node
+          GraphTransferInfo::NodeInfo& conv_relu_node_info =
+              *merge_graph_info.add_node_info();
+          conv_relu_node_info.set_name(string("convRelu")+std::to_string(new_node_id));
+          conv_relu_node_info.set_node_id(new_node_id);
+          conv_relu_node_info.set_type_name("ConvolutionRelu");
+          conv_relu_node_info.set_soc_op_id(
+              OvxOpsDefinitions::getInstance().GetOpIdFor("ConvolutionRelu"));
+          conv_relu_node_info.set_padding_id(conv2d_ninfo->padding_id()); //TODO: need set share same padding so far. need split padding to a single node.
+
+          //Step2, set node input count, output count
+          int input_count = conv2d_ninfo->input_count() + relu_ninfo->input_count() - 1;
+          if (bias_add_ninfo != nullptr) input_count += bias_add_ninfo->input_count() -1;
+          int output_count = relu_ninfo->output_count();
+          conv_relu_node_info.set_input_count(input_count);
+          conv_relu_node_info.set_output_count(output_count);
+
+          //Step3, create Node Input Info, copy input info to the new NodeInput Info, and remove
+          GraphTransferInfo::NodeInputInfo& conv_relu_node_input_info =
+              *merge_graph_info.add_node_input_info();
+          conv_relu_node_input_info.set_node_id(new_node_id);
+          MergeInputInfo(conv2d_id, &orig_graph_info, &conv_relu_node_input_info, -1);
+          if(bias_add_id != -1){
+            MergeInputInfo(bias_add_id, &orig_graph_info, &conv_relu_node_input_info, conv2d_id);
+            MergeInputInfo(relu_id, &orig_graph_info, &conv_relu_node_input_info, bias_add_id);
+          } else {
+            MergeInputInfo(relu_id, &orig_graph_info, &conv_relu_node_input_info, conv2d_id);
+          }
+
+          //Step4, create Node Output Info, copy from POOL node, and reset new node id.
+          GraphTransferInfo::NodeOutputInfo& conv_relu_node_output_info =
+              *merge_graph_info.add_node_output_info();
+          conv_relu_node_output_info.CopyFrom(*FindNodeOutputInfo(relu_id, &orig_graph_info));
+          conv_relu_node_output_info.set_node_id(new_node_id);
+
+        } else if (full_connect_id != -1) {
+          //Ruler Full Collect Relu
+          GraphTransferInfo::NodeInfo *relu_ninfo = FindNodeInfo(relu_id, &orig_graph_info);
+          GraphTransferInfo::NodeInfo *full_collect_ninfo = FindNodeInfo(full_connect_id, &orig_graph_info);
+          GraphTransferInfo::NodeInfo *bias_add_ninfo = FindNodeInfo(bias_add_id, &orig_graph_info);
+
+          //Step1, Create a new node.
+          new_node_id += 2 /* offset for ids */;
+          mergedNodeIDMap[relu_id] = new_node_id;
+          removeOpID.push_back(full_connect_id);
+          removeOpID.push_back(bias_add_id);
+          removeOpID.push_back(relu_id);
+
+          // Create a new output node
+          GraphTransferInfo::NodeInfo& fullC_relu_node_info =
+              *merge_graph_info.add_node_info();
+          fullC_relu_node_info.set_name(string("fullConnect")+std::to_string(new_node_id));
+          fullC_relu_node_info.set_node_id(new_node_id);
+          fullC_relu_node_info.set_type_name("FullConnectRelu");
+          fullC_relu_node_info.set_soc_op_id(
+              OvxOpsDefinitions::getInstance().GetOpIdFor("FullConnectRelu"));
+          fullC_relu_node_info.set_padding_id(full_collect_ninfo->padding_id()); //TODO: need set share same padding so far. need split padding to a single node.
+
+          //Step2, set node input count, output count
+          int input_count = full_collect_ninfo->input_count() + relu_ninfo->input_count() -1;
+          if (bias_add_ninfo != nullptr) input_count += bias_add_ninfo->input_count() -1;
+          int output_count = relu_ninfo->output_count();
+          fullC_relu_node_info.set_input_count(input_count);
+          fullC_relu_node_info.set_output_count(output_count);
+
+          //Step3, create Node Input Info, copy input info to the new NodeInput Info, and remove
+          GraphTransferInfo::NodeInputInfo& fullC_relu_node_input_info =
+              *merge_graph_info.add_node_input_info();
+          fullC_relu_node_input_info.set_node_id(new_node_id);
+          MergeInputInfo(full_connect_id, &orig_graph_info, &fullC_relu_node_input_info, -1);
+          if(bias_add_id != -1){
+            MergeInputInfo(bias_add_id, &orig_graph_info, &fullC_relu_node_input_info, full_connect_id);
+            MergeInputInfo(relu_id, &orig_graph_info, &fullC_relu_node_input_info, bias_add_id);
+          } else {
+            MergeInputInfo(relu_id, &orig_graph_info, &fullC_relu_node_input_info, full_connect_id);
+          }
+
+          //Step4, create Node Output Info, copy from POOL node, and reset new node id.
+          GraphTransferInfo::NodeOutputInfo& fullC_relu_node_output_info =
+              *merge_graph_info.add_node_output_info();
+          fullC_relu_node_output_info.CopyFrom(*FindNodeOutputInfo(relu_id, &orig_graph_info));
+          fullC_relu_node_output_info.set_node_id(new_node_id);
+
+        }
+      }
+    }
+  }
+  //Merge All Nodes except removed OP
+  CopyNodeInfo(&orig_graph_info, &merge_graph_info, removeOpID);
+  //Merge All InputNodeInfo except removed OP
+  CopyNodeInputInfo(&orig_graph_info, &merge_graph_info, removeOpID);
+  //Merge All OuptuNodeInfo except removed OP
+  CopyNodeOutputInfo(&orig_graph_info, &merge_graph_info, removeOpID);
+  //Check Input NodeInfo nodeInput use new node ID
+  MapOrigNodeId2NewNodeId(&merge_graph_info, mergedNodeIDMap);
+  //Merge All Const Node
+  MergeConstNodeInfo(&orig_graph_info, &merge_graph_info);
+  //Merge Graph Input Node
+  MergeGraphInputNodeInfo(&orig_graph_info, &merge_graph_info);
+  //Merge Graph Output Node
+  MergeGraphOutputNodeInfo(&orig_graph_info, &merge_graph_info);
+
+  LOG(INFO)<<"Merge Graph";
+  LOG(INFO)<<merge_graph_info.SerializeAsString();
+
+  graph_transfer_info_ = merge_graph_info;
+  return true;
+}
+
 
 }  // namespace tensorflow

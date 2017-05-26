@@ -141,9 +141,10 @@ tf_cc_test(
 tf_cc_test(
     name = "ovx_rewriter_transform_test",
     size = "small",
-    srcs = ["ovx_rewriter_transform_test.cc"],
+    srcs = ["ovx_rewriter_transform_lenet_test.cc"],
     deps = [
         ":ovx_rewriter_transform",
+        ":ovx_remote_fused_graph_executor_build",
         "//tensorflow/cc:cc_ops",
         "//tensorflow/core:core_cpu",
         "//tensorflow/core:core_cpu_internal",
