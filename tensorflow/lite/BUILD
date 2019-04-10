@@ -151,11 +151,11 @@ cc_library(
             "mmap_allocation.cc",
         ],
         "//tensorflow:windows": [
-            "nnapi_delegate_disabled.cc",
+            "nnapi_delegate.cc",
             "mmap_allocation_disabled.cc",
         ],
         "//conditions:default": [
-            "nnapi_delegate_disabled.cc",
+            "nnapi_delegate.cc",
             "mmap_allocation.cc",
         ],
     }),
