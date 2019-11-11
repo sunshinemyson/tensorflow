@@ -23,10 +23,8 @@ limitations under the License.
 
 #include "tensorflow/core/util/stats_calculator.h"
 #include "tensorflow/lite/c/c_api_internal.h"
-#if defined(__ANDROID__)
 #include "tensorflow/lite/delegates/gpu/delegate.h"
 #include "tensorflow/lite/nnapi/nnapi_util.h"
-#endif
 #include "tensorflow/lite/profiling/time.h"
 #include "tensorflow/lite/tools/benchmark/benchmark_params.h"
 #include "tensorflow/lite/tools/benchmark/benchmark_utils.h"
@@ -39,7 +37,6 @@ namespace benchmark {
 void MultiRunStatsRecorder::OnBenchmarkStart(const BenchmarkParams& params) {
   current_run_name_.clear();
 
-#if defined(__ANDROID__)
   if (params.Get<bool>("use_nnapi")) {
     const std::string accelerator =
         params.Get<std::string>("nnapi_accelerator_name");
@@ -47,7 +44,6 @@ void MultiRunStatsRecorder::OnBenchmarkStart(const BenchmarkParams& params) {
                                             : "nnapi(" + accelerator + ")";
     return;
   }
-#endif
 
   if (params.Get<bool>("use_gpu")) {
 #if defined(__ANDROID__)
@@ -206,9 +202,9 @@ void BenchmarkPerformanceOptions::ResetPerformanceOptions() {
   single_option_run_params_->Set<bool>("use_gpu", false);
 #if defined(__ANDROID__)
   single_option_run_params_->Set<bool>("gpu_precision_loss_allowed", true);
+#endif
   single_option_run_params_->Set<bool>("use_nnapi", false);
   single_option_run_params_->Set<std::string>("nnapi_accelerator_name", "");
-#endif
 }
 
 void BenchmarkPerformanceOptions::CreatePerformanceOptions() {
@@ -243,7 +239,6 @@ void BenchmarkPerformanceOptions::CreatePerformanceOptions() {
 #endif
   }
 
-#if defined(__ANDROID__)
   if (benchmark_all || HasOption("nnapi")) {
     std::string nnapi_accelerators = nnapi::GetStringDeviceNamesList();
     if (!nnapi_accelerators.empty()) {
@@ -264,7 +259,6 @@ void BenchmarkPerformanceOptions::CreatePerformanceOptions() {
     params.AddParam("use_nnapi", BenchmarkParam::Create<bool>(true));
     all_run_params_.emplace_back(std::move(params));
   }
-#endif
 }
 
 void BenchmarkPerformanceOptions::Run(int argc, char** argv) {
