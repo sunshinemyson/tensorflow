@@ -133,9 +133,15 @@ class NNMemory {
     if (name && size > 0) {
       nnapi_ = nnapi;
       byte_size_ = size;
+      auto map_flag = MAP_SHARED;
+      #if defined __ANDROID__
       fd_ = nnapi_->ASharedMemory_create(name, size);
+      #else
+      fd_ = -1;
+      map_flag |= MAP_ANONYMOUS;
+      #endif
       data_ptr_ = reinterpret_cast<uint8_t*>(
-          mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0));
+          mmap(nullptr, size, PROT_READ | PROT_WRITE, map_flag, fd_, 0));
       nnapi_->ANeuralNetworksMemory_createFromFd(size, PROT_READ | PROT_WRITE,
                                                  fd_, 0, &nn_memory_handle_);
     }
