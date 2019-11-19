@@ -1973,13 +1973,8 @@ bool NNAPIDelegateKernel::Validate(const TfLiteContext* context,
       if (version <= 1 &&
           (input_type == kTfLiteFloat32 || input_type == kTfLiteUInt8 ||
            input_type == kTfLiteInt8)) {
-        return [](const NNAPIOpMappingArgs& mapping_args)
-                   -> ANeuralNetworksOperationType {
-          auto builtin = reinterpret_cast<TfLiteDepthToSpaceParams*>(
-              mapping_args.node->builtin_data);
-          mapping_args.builder->AddScalarInt32Operand(builtin->block_size);
-          return ANEURALNETWORKS_DEPTH_TO_SPACE;
-        };
+
+          val_ctx.is_valid = true;
       }
     } break;
     case kTfLiteBuiltinReduceProd:
@@ -2740,6 +2735,12 @@ TfLiteStatus NNAPIDelegateKernel::Map(
           mapping_args.node->builtin_data);
       mapping_args.builder->AddScalarBoolOperand(builtin->keep_dims);
       *nn_op_type = ANEURALNETWORKS_REDUCE_SUM;
+    } break;
+    case kTfLiteBuiltinDepthToSpace: {
+      auto builtin = reinterpret_cast<TfLiteDepthToSpaceParams*>(
+          mapping_args.node->builtin_data);
+          mapping_args.builder->AddScalarInt32Operand(builtin->block_size);
+          *nn_op_type = ANEURALNETWORKS_DEPTH_TO_SPACE;
     } break;
     default:
       // All other operators are not mapped.
