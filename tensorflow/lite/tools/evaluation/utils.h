@@ -21,9 +21,9 @@ limitations under the License.
 #include <unordered_set>
 #include <vector>
 
+#include "tensorflow/lite/delegates/nnapi/nnapi_delegate.h"
 #if defined(__ANDROID__)
 #include "tensorflow/lite/delegates/gpu/delegate.h"
-#include "tensorflow/lite/delegates/nnapi/nnapi_delegate.h"
 #if (defined(__arm__) || defined(__aarch64__))
 #include "tensorflow/lite/delegates/hexagon/hexagon_delegate.h"
 #endif
