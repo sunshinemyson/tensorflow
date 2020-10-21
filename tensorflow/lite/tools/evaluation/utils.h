@@ -62,9 +62,7 @@ inline TfLiteStatus GetSortedFileNames(const std::string& directory,
 }
 
 TfLiteDelegatePtr CreateNNAPIDelegate();
-#if defined(__ANDROID__)
 TfLiteDelegatePtr CreateNNAPIDelegate(StatefulNnApiDelegate::Options options);
-#endif
 
 TfLiteDelegatePtr CreateGPUDelegate();
 #if defined(__ANDROID__)
