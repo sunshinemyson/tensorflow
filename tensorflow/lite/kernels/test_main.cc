@@ -23,13 +23,18 @@ namespace {
 
 void InitKernelTest(int* argc, char** argv) {
   bool use_nnapi = false;
+  bool use_vx_delegate = false;
   std::vector<tflite::Flag> flags = {
       tflite::Flag::CreateFlag("use_nnapi", &use_nnapi, "Use NNAPI"),
+      tflite::Flag::CreateFlag("use_vx_delegate", &use_vx_delegate, "Use versilicon delegate"),
   };
   tflite::Flags::Parse(argc, const_cast<const char**>(argv), flags);
 
   if (use_nnapi) {
     tflite::SingleOpModel::SetForceUseNnapi(true);
+  }
+  if (use_vx_delegate) {
+    tflite::SingleOpModel::SetForceUseVxDelegate(true);
   }
 }
 
