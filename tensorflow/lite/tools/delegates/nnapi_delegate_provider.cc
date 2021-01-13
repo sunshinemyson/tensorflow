@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 #include <string>
+#include <unistd.h>
 
 #include "tensorflow/lite/tools/delegates/delegate_provider.h"
 #include "tensorflow/lite/tools/evaluation/utils.h"
@@ -67,7 +68,7 @@ std::vector<Flag> NnapiDelegateProvider::CreateFlags(ToolParams* params) const {
                      "Allow fp32 computation to be run in fp16"),
     CreateFlag<std::string>(
         "cache_model_dir", params,
-        "the file path to save cache model, it should be exit before."),
+        "the file path to save cache model, it should be exist before."),
     CreateFlag<std::string>(
         "cache_model_token", params,
         "the token of cache model, it identify the different cache model"),
@@ -133,7 +134,11 @@ TfLiteDelegatePtr NnapiDelegateProvider::CreateTfLiteDelegate(
 
     std::string cache_model_dir = params.Get<std::string>("cache_model_dir");
     if (!cache_model_dir.empty()) {
-      options.cache_dir = cache_model_dir.c_str();
+      if (access(cache_model_dir.c_str(), 0) == F_OK) {
+        options.cache_dir = cache_model_dir.c_str();
+      } else {
+	TFLITE_LOG(WARN) << "WARN: The setting directory for cache model storing doesn't exist. It should be exist before.";
+      }
     }
 
     std::string cache_model_token = params.Get<std::string>("cache_model_token");
