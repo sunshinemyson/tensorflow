@@ -516,6 +516,10 @@ class SingleOpModel {
   // Enables NNAPI delegate application during interpreter creation.
   static void SetForceUseNnapi(bool use_nnapi);
   static bool GetForceUseNnapi();
+
+  static void SetForceUseVxDelegate(bool use_vsi);
+  static bool GetForceUseVxDelegate();
+
   int CountOpsExecutedByCpuKernel();
 
  protected:

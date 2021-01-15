@@ -48,6 +48,8 @@ limitations under the License.
 #include "tensorflow/lite/tools/versioning/op_version.h"
 #include "tensorflow/lite/version.h"
 
+#include "tensorflow/lite/delegates/vx-delegate/delegate_main.h"
+
 namespace tflite {
 
 using ::testing::FloatNear;
@@ -58,6 +60,7 @@ namespace {
 // Whether to enable (global) use of NNAPI. Note that this will typically
 // be set via a command-line flag.
 static bool force_use_nnapi = false;
+static bool force_use_vx_delegate = false;
 
 TfLiteDelegate* TestNnApiDelegate() {
   static TfLiteDelegate* delegate = [] {
@@ -69,6 +72,10 @@ TfLiteDelegate* TestNnApiDelegate() {
     return new StatefulNnApiDelegate(options);
   }();
   return delegate;
+}
+
+TfLiteDelegate* TestOvxlibxxDelegate() {
+  return ::vx::delegate::Delegate::Create();
 }
 
 }  // namespace
@@ -223,6 +230,14 @@ TfLiteStatus SingleOpModel::ApplyDelegate() {
     delegate_ = TestNnApiDelegate();
   }
 
+  if (force_use_vx_delegate) {
+    delegate_ = ::vx::delegate::Delegate::Create();
+  }
+
+  if (force_use_nnapi && force_use_vx_delegate) {
+    LOG(FATAL) << "Don't setup nnapi and vx_delgegate at the same time!";
+  }
+
   if (delegate_) {
     return interpreter_->ModifyGraphWithDelegate(delegate_);
   }
@@ -248,6 +263,17 @@ void SingleOpModel::SetForceUseNnapi(bool use_nnapi) {
 
 // static
 bool SingleOpModel::GetForceUseNnapi() { return force_use_nnapi; }
+
+// static
+void SingleOpModel::SetForceUseVxDelegate(bool use_vx) {
+  force_use_vx_delegate = use_vx;
+}
+
+// static
+bool SingleOpModel::GetForceUseVxDelegate() {
+  return force_use_vx_delegate;
+}
+
 
 int32_t SingleOpModel::GetTensorSize(int index) const {
   TfLiteTensor* t = interpreter_->tensor(index);
