@@ -43,6 +43,10 @@ limitations under the License.
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+//Random number generation:
+#include <ctime>
+#include <cstdlib>
 #endif
 
 #include "tensorflow/lite/allocation.h"
@@ -4536,9 +4540,13 @@ TfLiteStatus NNAPIDelegateKernel::BuildGraph(
       context, nnapi_->ANeuralNetworksModel_finish(nn_model_.get()),
       "finalizing the model", nnapi_errno);
 
+  srand(clock());
+  std::string suffix = std::to_string(rand());
+  TFLITE_LOG_PROD(TFLITE_LOG_INFO,"Random suffix is %s", suffix.c_str());
+
   // Create shared memory pool for inputs and outputs.
-  std::string input_pool_name = "input_pool" + std::to_string(graph_index);
-  std::string output_pool_name = "output_pool" + std::to_string(graph_index);
+  std::string input_pool_name = "input_pool" + std::to_string(graph_index) + suffix;
+  std::string output_pool_name = "output_pool" + std::to_string(graph_index) + suffix;
   nn_input_memory_.reset(
       new NNMemory(nnapi_, input_pool_name.data(), total_input_byte_size));
   nn_output_memory_.reset(
